@@ -1,0 +1,5 @@
+# For annoying apple file
+.DS_Store
+
+# For compiled object files
+*.o
