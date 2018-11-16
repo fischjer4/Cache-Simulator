@@ -3,3 +3,6 @@
 
 # For compiled object files
 *.o
+
+# For linter-gcc in atom
+*.gch

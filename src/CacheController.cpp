@@ -9,6 +9,7 @@
 #include <fstream>
 #include <regex>
 #include <cmath>
+#include <sstream>
 
 using namespace std;
 
@@ -25,9 +26,12 @@ CacheController::CacheController(ConfigInfo ci, char* tracefile) {
 	this->globalHits = 0;
 	this->globalMisses = 0;
 	this->globalEvictions = 0;
-	
-	// create your cache structure
-	// ...
+
+	// cache has Sets, which have Blocks
+	// CacheSet(idx, associativity, ReplacementPolicy, WritePolicy);
+	for(unsigned int i = 0; i < this->ci.numberSets; i++) {
+		this->sets.push_back( CacheSet(i, ci.associativity, ci.rp, ci.wp) );
+	}
 
 	// manual test code to see if the cache is behaving properly
 	// will need to be changed slightly to match the function prototype
@@ -48,7 +52,7 @@ CacheController::CacheController(ConfigInfo ci, char* tracefile) {
 void CacheController::runTracefile() {
 	cout << "Input tracefile: " << inputFile << endl;
 	cout << "Output file name: " << outputFile << endl;
-	
+
 	// process each input line
 	string line;
 	// define regular expressions that are used to locate commands
@@ -137,7 +141,7 @@ void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigne
 	AddressInfo ai = getAddressInfo(address);
 
 	cout << "\tSet index: " << ai.setIndex << ", tag: " << ai.tag << endl;
-	
+
 	// your code needs to update the global counters that track the number of hits, misses, and evictions
 
 	if (response->hit)

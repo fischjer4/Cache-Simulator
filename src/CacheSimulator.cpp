@@ -33,9 +33,7 @@ int main(int argc, char* argv[]) {
 		cerr << "You need at least two command line arguments. You should provide a configuration file and at least one trace file." << endl;
 		return 1;
 	}
-
 	
-
 	// read the configuration file
 	cout << "Reading config file: " << argv[1] << endl;
 	ifstream infile(argv[1]);
@@ -52,7 +50,7 @@ int main(int argc, char* argv[]) {
 	infile >> tmp;
 	config.cp = static_cast<CoherenceProtocol>(tmp);
 	infile.close();
-	
+
 	// Examples of how you can access the configuration file information
 	cout << config.numberSets << " sets with " << config.blockSize << " bytes in each block. N = " << config.associativity << endl;
 
@@ -60,7 +58,7 @@ int main(int argc, char* argv[]) {
 		cout << "Using random replacement protocol" << endl;
 	else
 		cout << "Using LRU protocol" << endl;
-	
+
 	if (config.wp == WritePolicy::WriteThrough)
 		cout << "Using write-through policy" << endl;
 	else

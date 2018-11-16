@@ -7,6 +7,7 @@
 #ifndef _CACHECONTROLLER_H_
 #define _CACHECONTROLLER_H_
 
+#include "CacheSet.h"
 #include "CacheStuff.h"
 #include <string>
 
@@ -23,6 +24,9 @@ class CacheController {
 		unsigned int globalMisses;
 		unsigned int globalEvictions;
 		std::string inputFile, outputFile;
+
+		// cache has Sets, which have Blocks
+		std::vector<CacheSet> sets;
 
 		ConfigInfo ci;
 

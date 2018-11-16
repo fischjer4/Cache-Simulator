@@ -7,17 +7,18 @@
 #ifndef _CACHESTUFF_H_
 #define _CACHESTUFF_H_
 
-enum class ReplacementPolicy {
+
+enum class ReplacementPolicy : unsigned int {
 	Random,
 	LRU
 };
 
-enum class WritePolicy {
+enum class WritePolicy : unsigned int {
 	WriteThrough,
 	WriteBack
 };
 
-enum class CoherenceProtocol {
+enum class CoherenceProtocol : unsigned int  {
 	Simple,
 	MESI
 };
