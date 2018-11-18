@@ -1,6 +1,9 @@
 
 #include "LRUList.h"
 
+#include <iostream>
+using namespace std;
+
 /*
   * LRUList constructor
 */
@@ -15,16 +18,21 @@ LRUList::LRUList() {
 */
 CacheBlock* LRUList::getEvictedBlock() {
   Node *tmp = this->head;
+
+  /* move tmp to the end of the list */
   while (tmp != NULL && tmp->next != NULL) {
     tmp = tmp->next;
   }
   /*tmp is null. This should never happen */
   if (tmp == NULL) return NULL;
 
-  CacheBlock *result = tmp->next->block;
+  CacheBlock *result;
+  result = tmp->block;
+  if (tmp->prev) {
+    tmp->prev->next = NULL;
+  }
+  delete tmp; tmp = NULL;
   this->map.erase(result);
-  delete tmp->next;
-  tmp->next = NULL;
 
   return result;
 }
@@ -34,7 +42,14 @@ void LRUList::hookUp(Node *back, Node *ahead) {
   if (back == NULL)
     return;
 
-  Node *tmp = back;
+  /* hook up back->prev up to back->next since back is leaving */
+  if (back->prev) {
+    back->prev->next = back->next;
+    if (back->next) {
+      back->next->prev = back->prev;
+    }
+  }
+
   /* hook up back */
   back->next = ahead;
   if (ahead != NULL) {
@@ -42,15 +57,6 @@ void LRUList::hookUp(Node *back, Node *ahead) {
     /* hook up ahead */
     ahead->prev = back;
   }
-  /* hook up aheads old prev */
-  if (back->prev)
-    back->prev->next = back;
-
-  /* reconnect link where back used to be */
-  if (tmp != NULL && tmp->next != NULL)
-    tmp->next->prev = tmp->prev;
-  if (tmp != NULL && tmp->prev != NULL)
-    tmp->prev->next = tmp->next;
 }
 
 /*
@@ -71,10 +77,15 @@ void LRUList::addInteraction(CacheBlock *block) {
   else if (foundBlock == this->map.end()) {
     Node *newNode = new Node();
     newNode->block = block;
-    this->hookUp(newNode, head); //move newNode to front of list
+    map[block] = newNode;
+    this->hookUp(newNode, this->head); //move newNode to front of list
+    this->head = newNode;
   }
   /* Case 3: Block is in list */
   else {
-    this->hookUp(foundBlock->second, head);
+    if (foundBlock->second != this->head) {
+      this->hookUp(foundBlock->second, this->head);
+      this->head = foundBlock->second;
+    }
   }
 }

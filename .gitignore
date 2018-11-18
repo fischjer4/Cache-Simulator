@@ -6,3 +6,10 @@
 
 # For linter-gcc in atom
 *.gch
+
+# For executable
+cache_sim
+a.out
+
+# For output
+*.out

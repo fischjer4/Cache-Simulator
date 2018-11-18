@@ -9,18 +9,18 @@
   * Note that an associativity level of 1 indicates a Direct-Mapped cache.
     In this situation replacement policy has no meaning.
 */
-CacheSet::CacheSet(unsigned int idx, unsigned int asoc, ReplacementPolicy rp,
-                  WritePolicy wp) {
+CacheSet::CacheSet(unsigned int idx, ConfigInfo ci) {
   this->index = idx;
-  this->associativity = asoc;
-  this->rp = rp;
-  this->wp = wp;
+  this->associativity = ci.associativity;
+  this->rp = ci.rp;
+  this->wp = ci.wp;
+  this->memoryAccessCycles = ci.memoryAccessCycles;
+  this->cacheAccessCycles = ci.cacheAccessCycles;
 
-  for(unsigned int i = 0; i < this->associativity; i++) {
-    this->blocks.push_back( CacheBlock() );
+  for(int i = 0; i < (int)this->associativity; i++) {
+    this->blocks.push_back( new CacheBlock() );
   }
-
-  this->lru = (rp == ReplacementPolicy::LRU ? new LRUList() : NULL);
+  this->lru = (this->rp == ReplacementPolicy::LRU ? new LRUList() : NULL);
 }
 
 /*
@@ -29,8 +29,9 @@ CacheSet::CacheSet(unsigned int idx, unsigned int asoc, ReplacementPolicy rp,
 */
 CacheBlock* CacheSet::getBlockWithTag(unsigned int tag) {
   for(size_t i = 0; i < this->blocks.size(); i++) {
-    if (this->blocks[i].getTag() == tag)
-      return &this->blocks[i];
+    if (this->blocks[i]->getTag() == tag){
+      return this->blocks[i];
+    }
   }
   return NULL;
 }
@@ -38,7 +39,9 @@ CacheBlock* CacheSet::getBlockWithTag(unsigned int tag) {
 /*
   * Simulates writing the block back to memory
 */
-void CacheSet::writeToMemory() {
+void CacheSet::writeToMemory(CacheResponse *response) {
+  /* main memory access, update cycles */
+  response->cycles += this->memoryAccessCycles;
   std::cout << "Writing dirty block back to memory" << std::endl;
 }
 
@@ -49,16 +52,20 @@ void CacheSet::writeToMemory() {
   * Removes the block from the LRU and unsets
     the blocks valid bit
 */
-void CacheSet::removeBlock() {
-  CacheBlock *evictMe = this->lru->getEvictedBlock();
-  if (evictMe == NULL){ //error
+void CacheSet::removeBlock(CacheResponse *response) {
+  CacheBlock *evictMe = this->rp == ReplacementPolicy::LRU ? this->lru->getEvictedBlock() : this->blocks[0];
+  if (evictMe == NULL){ //error. May be due to func being called when set is not full
     std::cerr << "Error in getEvictedBlock" << std::endl;
     exit(1);
   }
-
+  /* eviction took place */
+  response->eviction = true;
+  /* default dirtyEviction to false, will update if true */
+  response->dirtyEviction = false;
   /* if write-back mode and block is dirty */
   if (this->wp == WritePolicy::WriteBack && evictMe->getDirty() == 1) {
-    this->writeToMemory();
+    response->dirtyEviction = true;  //evicted block written back to memory
+    this->writeToMemory(response);
   }
   /* invalidate the block */
   evictMe->unsetValid();
@@ -71,8 +78,8 @@ void CacheSet::removeBlock() {
 CacheBlock* CacheSet::getAvailableBlock() {
   for (size_t i = 0; i < this->blocks.size(); i++) {
     /* if the block is not valid, meaning free to use */
-    if (this->blocks[i].getValid() == 0)
-      return &this->blocks[i];
+    if (this->blocks[i]->getValid() == 0)
+      return this->blocks[i];  //return address of available block
   }
   return NULL;
 }
@@ -81,17 +88,22 @@ CacheBlock* CacheSet::getAvailableBlock() {
   * Load a block from memory into the cache
   * This is done when a block needed is not in the cache
 */
-void CacheSet::loadBlockIntoCache(unsigned int tag) {
+void CacheSet::loadBlockIntoCache(CacheResponse *response, unsigned int tag) {
   CacheBlock *available = NULL;
+  /* default eviction to false, will update if true later */
+  response->eviction = false;
   /* check if available spots in set */
   do {
     available = this->getAvailableBlock();
     if (available == NULL) {
       /* no room in set, need to evict one */
-      this->removeBlock();
+      this->removeBlock(response);
     }
   } while(available == NULL);
-  /* successfully loaded the block into the cache */
+  /* main memory access, update cycles */
+  response->cycles += this->memoryAccessCycles;
+  /* load block into available slot */
+
   available->setTag(tag);
   available->setValid();
 }
@@ -103,21 +115,28 @@ void CacheSet::loadBlockIntoCache(unsigned int tag) {
   * The block to be written to is determined by the tag passed in
   * Update LRU
 */
-void CacheSet::storeBlockFromCPU(unsigned int tag) {
+void CacheSet::storeBlockFromCPU(CacheResponse *response, unsigned int tag) {
   CacheBlock *block = getBlockWithTag(tag);
+  /* cache access, update cycles */
+  response->cycles += this->cacheAccessCycles;
+  /* default hit to true, will update to false if it is not */
+  response->hit = true;  //tag in cache, hit
   /* if block is NULL it is not in the cache, we need to load
-     it then store the data. Sounds just like a modify */
+     it then store the data */
   if (block == NULL) {
-    this->modifyBlockFromCPU(tag);
-  } else {
-    /* write-through mode or write-back mode and block is dirty */
-    if (this->wp == WritePolicy::WriteThrough ||
-       (this->wp == WritePolicy::WriteBack && block->getDirty() == 1)) {
-         this->writeToMemory();
-    }
-    /* let the lru know we used this block */
-    this->lru->addInteraction(block);
+    response->hit = false;  //tag not in cache, hit = false = miss
+    this->loadBlockIntoCache(response, tag);  //load the block into the cache
+    block = getBlockWithTag(tag);  //get a pointer to the newly loaded block
   }
+  /* write-through mode, write to memory */
+  if (this->wp == WritePolicy::WriteThrough) {
+       this->writeToMemory(response);
+  } else {
+    /* write-back mode, set dirty bit */
+    block->setDirty();
+  }
+  /* let the lru know we used this block */
+  this->lru->addInteraction(block);
 }
 
 /*
@@ -126,24 +145,18 @@ void CacheSet::storeBlockFromCPU(unsigned int tag) {
   * The block to be loaded is determined by the tag passed in
   * Update LRU
 */
-void CacheSet::loadBlockIntoCPU(unsigned int tag) {
+void CacheSet::loadBlockIntoCPU(CacheResponse *response, unsigned int tag) {
   CacheBlock *block = getBlockWithTag(tag);
+  /* cache access, update cycles */
+  response->cycles += this->cacheAccessCycles;
+  /* default hit to true, will update to false if it is not */
+  response->hit = true;  //tag in cache, hit
   /* if block is NULL it is not in the cache, we need to get it*/
   if (block == NULL) {
-    this->loadBlockIntoCache(tag);
+    response->hit = false;  //tag not in cache, hit = false = miss
+    this->loadBlockIntoCache(response, tag);
+    block = getBlockWithTag(tag);
   }
   /* let the lru know we used this block */
   this->lru->addInteraction(block);
-}
-
-/*
-  * Modify data.
-  * Implies a special case of a data load, followed
-    immediately by a data store
-  * The block to be loaded is determined by the tag passed in
-  * Update LRU
-*/
-void CacheSet::modifyBlockFromCPU(unsigned int tag) {
-  this->loadBlockIntoCPU(tag);
-  this->storeBlockFromCPU(tag);
 }

@@ -26,7 +26,7 @@ class CacheController {
 		std::string inputFile, outputFile;
 
 		// cache has Sets, which have Blocks
-		std::vector<CacheSet> sets;
+		std::vector<CacheSet*> sets;
 
 		ConfigInfo ci;
 

@@ -41,6 +41,7 @@ struct CacheResponse {
 	bool eviction; // did this memory operation involve an eviction?
 	bool dirtyEviction; // was the evicted block marked as dirty?
 	unsigned int cycles; // how many clock cycles did this operation take?
+	CacheResponse() : hit(false), eviction(false), dirtyEviction(false), cycles(0) {}
 };
 
 #endif //CACHESTUFF

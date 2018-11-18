@@ -1,9 +1,10 @@
 # Script adapted from https://hiltmon.com/blog/2013/07/03/a-simple-c-plus-plus-project-structure/
-CC := /usr/local/classes/eecs/fall2018/cs472/public/gcc/bin/g++
+# CC := /usr/local/classes/eecs/fall2018/cs472/public/gcc/bin/g++
+CC := /usr/local/Cellar/gcc/8.2.0/bin/g++-8
 SRCDIR := src
 BUILDDIR := build
 TARGET := bin/cache_sim
- 
+
 SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
@@ -23,7 +24,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@echo " $(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
 clean:
-	@echo "Cleaning..."; 
+	@echo "Cleaning...";
 	@echo " $(RM) -r $(BUILDDIR) $(TARGET)"; $(RM) -r $(BUILDDIR) $(TARGET)
 
 .PHONY: clean
