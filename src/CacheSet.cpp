@@ -50,6 +50,22 @@ void CacheSet::writeToMemory(CacheResponse *response, unsigned int tag) {
   std::string typeOfWrite = (response->dirtyEviction ? "dirty block" : "block");
   std::cout << "Writing " << typeOfWrite << " (" << tag << ") back to memory" << std::endl;
 }
+
+/*
+  * Returns the block that should be evicted
+  * If LRU, then call LRU evict function
+  * If random, then generate random block
+*/
+CacheBlock* CacheSet::evictBlock() {
+  if (this->rp == ReplacementPolicy::LRU) {
+    return this->lru->getEvictedBlock();
+  } else {
+    /* exclusive max, inclusive min */
+    int min = 0, max = (int)this->associativity;
+    int randB = (rand() % (max - min)) + min;
+    return this->blocks[randB];
+  }
+}
 /*
   * Only used when the set is full
   * Block is written back to memory if write-back mode and
@@ -58,7 +74,7 @@ void CacheSet::writeToMemory(CacheResponse *response, unsigned int tag) {
     the blocks valid bit
 */
 void CacheSet::removeBlock(CacheResponse *response) {
-  CacheBlock *evictMe = (this->rp == ReplacementPolicy::LRU ? this->lru->getEvictedBlock() : this->blocks[0]);
+  CacheBlock *evictMe = this->evictBlock();
   if (evictMe == NULL){ //error. May be due to func being called when set is not full
     std::cerr << "Error in getEvictedBlock" << std::endl;
     exit(1);

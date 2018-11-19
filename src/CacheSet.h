@@ -21,6 +21,7 @@ class CacheSet {
     void removeBlock(CacheResponse *response);          //used when set is full
   public:
     void printLRU();
+    CacheBlock* evictBlock();
     CacheBlock* getAvailableBlock();
     CacheBlock* getBlockWithTag(unsigned int tag);
     void writeToMemory(CacheResponse *response, unsigned int tag);
