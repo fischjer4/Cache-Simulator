@@ -1,7 +1,7 @@
 #include "CacheSet.h"
 #include "CacheStuff.h"
 #include <iostream>
-
+#include <string>
 /*
   * Constuctor
   * Set the sets index within the cache, replacement policy (random or LRU),
@@ -14,8 +14,6 @@ CacheSet::CacheSet(unsigned int idx, ConfigInfo ci) {
   this->associativity = ci.associativity;
   this->rp = ci.rp;
   this->wp = ci.wp;
-  this->memoryAccessCycles = ci.memoryAccessCycles;
-  this->cacheAccessCycles = ci.cacheAccessCycles;
 
   for(int i = 0; i < (int)this->associativity; i++) {
     this->blocks.push_back( new CacheBlock() );
@@ -24,6 +22,15 @@ CacheSet::CacheSet(unsigned int idx, ConfigInfo ci) {
 }
 
 /*
+  * Prints the status of the LRU if valid, otherwise NULL
+*/
+void CacheSet::printLRU() {
+  if (this->lru != NULL) {
+    this->lru->print();
+  }
+}
+
+ /*
   * Returns the address of block with the matching Tag
   * NULL if tag not in set
 */
@@ -39,12 +46,10 @@ CacheBlock* CacheSet::getBlockWithTag(unsigned int tag) {
 /*
   * Simulates writing the block back to memory
 */
-void CacheSet::writeToMemory(CacheResponse *response) {
-  /* main memory access, update cycles */
-  response->cycles += this->memoryAccessCycles;
-  std::cout << "Writing dirty block back to memory" << std::endl;
+void CacheSet::writeToMemory(CacheResponse *response, unsigned int tag) {
+  std::string typeOfWrite = (response->dirtyEviction ? "dirty block" : "block");
+  std::cout << "Writing " << typeOfWrite << " (" << tag << ") back to memory" << std::endl;
 }
-
 /*
   * Only used when the set is full
   * Block is written back to memory if write-back mode and
@@ -53,7 +58,7 @@ void CacheSet::writeToMemory(CacheResponse *response) {
     the blocks valid bit
 */
 void CacheSet::removeBlock(CacheResponse *response) {
-  CacheBlock *evictMe = this->rp == ReplacementPolicy::LRU ? this->lru->getEvictedBlock() : this->blocks[0];
+  CacheBlock *evictMe = (this->rp == ReplacementPolicy::LRU ? this->lru->getEvictedBlock() : this->blocks[0]);
   if (evictMe == NULL){ //error. May be due to func being called when set is not full
     std::cerr << "Error in getEvictedBlock" << std::endl;
     exit(1);
@@ -65,7 +70,7 @@ void CacheSet::removeBlock(CacheResponse *response) {
   /* if write-back mode and block is dirty */
   if (this->wp == WritePolicy::WriteBack && evictMe->getDirty() == 1) {
     response->dirtyEviction = true;  //evicted block written back to memory
-    this->writeToMemory(response);
+    this->writeToMemory(response, evictMe->getTag());
   }
   /* invalidate the block */
   evictMe->unsetValid();
@@ -100,8 +105,6 @@ void CacheSet::loadBlockIntoCache(CacheResponse *response, unsigned int tag) {
       this->removeBlock(response);
     }
   } while(available == NULL);
-  /* main memory access, update cycles */
-  response->cycles += this->memoryAccessCycles;
   /* load block into available slot */
 
   available->setTag(tag);
@@ -117,8 +120,6 @@ void CacheSet::loadBlockIntoCache(CacheResponse *response, unsigned int tag) {
 */
 void CacheSet::storeBlockFromCPU(CacheResponse *response, unsigned int tag) {
   CacheBlock *block = getBlockWithTag(tag);
-  /* cache access, update cycles */
-  response->cycles += this->cacheAccessCycles;
   /* default hit to true, will update to false if it is not */
   response->hit = true;  //tag in cache, hit
   /* if block is NULL it is not in the cache, we need to load
@@ -130,7 +131,7 @@ void CacheSet::storeBlockFromCPU(CacheResponse *response, unsigned int tag) {
   }
   /* write-through mode, write to memory */
   if (this->wp == WritePolicy::WriteThrough) {
-       this->writeToMemory(response);
+       this->writeToMemory(response, block->getTag());
   } else {
     /* write-back mode, set dirty bit */
     block->setDirty();
@@ -147,8 +148,6 @@ void CacheSet::storeBlockFromCPU(CacheResponse *response, unsigned int tag) {
 */
 void CacheSet::loadBlockIntoCPU(CacheResponse *response, unsigned int tag) {
   CacheBlock *block = getBlockWithTag(tag);
-  /* cache access, update cycles */
-  response->cycles += this->cacheAccessCycles;
   /* default hit to true, will update to false if it is not */
   response->hit = true;  //tag in cache, hit
   /* if block is NULL it is not in the cache, we need to get it*/

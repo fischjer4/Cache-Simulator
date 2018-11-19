@@ -16,6 +16,7 @@ class LRUList {
     Node *head;
     std::unordered_map<CacheBlock*, Node*> map; //map block address to their spot in linked list
   public:
+    void print();  //used to print LRU
     void hookUp(Node *, Node *);
     CacheBlock* getEvictedBlock();
     void addInteraction(CacheBlock *);

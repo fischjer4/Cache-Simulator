@@ -32,17 +32,6 @@ CacheController::CacheController(ConfigInfo ci, char* tracefile) {
 		this->sets.push_back( new CacheSet(i, this->ci) );
 	}
 
-	// manual test code to see if the cache is behaving properly
-	// will need to be changed slightly to match the function prototype
-	/*
-	cacheAccess(false, 0);
-	cacheAccess(false, 128);
-	cacheAccess(false, 256);
-
-	cacheAccess(false, 0);
-	cacheAccess(false, 128);
-	cacheAccess(false, 256);
-	*/
 }
 
 /*
@@ -79,7 +68,6 @@ void CacheController::runTracefile() {
 		unsigned long int address;
 		// create a struct to track cache responses
 		CacheResponse response;
-
 		// ignore comments
 		if (std::regex_match(line, commentPattern) || std::regex_match(line, instructionPattern)) {
 			// skip over comments and CPU instructions
@@ -92,6 +80,8 @@ void CacheController::runTracefile() {
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, false, address);
 			outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
+			/* add to global cycles counter */
+			this->globalCycles += response.cycles;
 
 		} else if (std::regex_match(line, match, storePattern)) {
 
@@ -101,10 +91,13 @@ void CacheController::runTracefile() {
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, true, address);
 			outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
+			/* add to global cycles counter */
+			this->globalCycles += response.cycles;
 
 		} else if (std::regex_match(line, match, modifyPattern)) {
 
 			cout << "Found a modify op!" << endl;
+			cout << "  Load of Modify" << endl;
 			istringstream hexStream(match.str(2));
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
@@ -114,13 +107,18 @@ void CacheController::runTracefile() {
 			tmpString.append(response.hit ? " hit" : " miss");
 			tmpString.append(response.eviction ? " eviction" : "");
 			unsigned long int totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
+
+			/* reset response */
+			response = CacheResponse();
 			// now process the write operation
+			cout << "  Store of Modify" << endl;
 			cacheAccess(&response, true, address);
 			tmpString.append(response.hit ? " hit" : " miss");
 			tmpString.append(response.eviction ? " eviction" : "");
 			totalCycles += response.cycles;
 			outfile << " " << totalCycles << tmpString;
-
+			/* add to global cycles counter */
+			this->globalCycles += totalCycles;
 		} else {
 			throw runtime_error("Encountered unknown line format in tracefile.");
 		}
@@ -132,6 +130,8 @@ void CacheController::runTracefile() {
 					<< " Evictions: " << this->globalEvictions << endl;
 	outfile << "Cycles: " << this->globalCycles << endl;
 
+	/* tell cout to output numbers in decimal not hex */
+	cout << std::dec;
 	cout << "Hits: " << this->globalHits << " Misses: " << this->globalMisses
 				  << " Evictions: " << this->globalEvictions << endl;
 	cout << "Cycles: " << this->globalCycles << endl;
@@ -176,6 +176,14 @@ void CacheController::cacheAccess(CacheResponse *response, bool isWrite, unsigne
 	else
 		cout << "Address " << std::hex << address << " was a miss." << endl;
 
+	/* Update the cycles from this cache access */
+	this->updateCycles(response, isWrite);
+
+	/* print the lru for debuggin purposes */
+	if (this->ci.rp == ReplacementPolicy::LRU) {
+		cout << "set " << ai.setIndex << " lru: ";
+		this->sets[ai.setIndex]->printLRU();
+	}
 	cout << "-----------------------------------------" << endl;
 
 	return;
@@ -203,12 +211,13 @@ void CacheController::cacheAccess(CacheResponse *response, bool isWrite, unsigne
 		d. Write-through, mem acccess 2
 Hit = false
 */
-void CacheController::updateCycles(CacheResponse* response, bool isWrite) {
+void CacheController::updateCycles(CacheResponse *response, bool isWrite) {
 	response->cycles = 0;
 	/* add cycles to get to cache */
 	response->cycles += this->ci.cacheAccessCycles;
 	/* if it was a hit */
 	if (response->hit) {
+		this->globalHits += 1;
 		/* if it was a store and write-through mode */
 		if (isWrite && this->ci.wp == WritePolicy::WriteThrough) {
 			/* memory access 1 */
@@ -217,15 +226,20 @@ void CacheController::updateCycles(CacheResponse* response, bool isWrite) {
 	}
   /* if it was a miss */
 	else {
+		this->globalMisses += 1;
 		/* memory access 1 to go get our block */
 		response->cycles += this->ci.memoryAccessCycles;
 		/* if write-back mode and a dirty eviction took place */
-		if (this->ci.wp == WritePolicy::WriteBack && response->dirtyEviction) {
+		if (isWrite && this->ci.wp == WritePolicy::WriteBack && response->dirtyEviction) {
 			/* memory access 2 to write old block back to memory */
 			response->cycles += this->ci.memoryAccessCycles;
-		} else if (this->ci.wp == WritePolicy::WriteThrough) {
+		} else if (isWrite && this->ci.wp == WritePolicy::WriteThrough) {
 			/* memory access 2 to write our data back to memory for write-through mode */
 			response->cycles += this->ci.memoryAccessCycles;
 		}
+	}
+	/* add to eviction counter */
+	if (response->eviction || response->dirtyEviction){
+		this->globalEvictions += 1;
 	}
 }

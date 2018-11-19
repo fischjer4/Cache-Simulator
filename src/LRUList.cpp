@@ -2,7 +2,6 @@
 #include "LRUList.h"
 
 #include <iostream>
-using namespace std;
 
 /*
   * LRUList constructor
@@ -57,6 +56,15 @@ void LRUList::hookUp(Node *back, Node *ahead) {
     /* hook up ahead */
     ahead->prev = back;
   }
+}
+
+void LRUList::print() {
+  Node *t = this->head;
+  while (t != NULL) {
+    std::cout << t->block->getTag() << (t->next != NULL ? " - " : "");
+    t = t->next;
+  }
+  std::cout << std::endl;
 }
 
 /*

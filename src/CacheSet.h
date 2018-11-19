@@ -20,9 +20,10 @@ class CacheSet {
     std::vector<CacheBlock*> blocks;
     void removeBlock(CacheResponse *response);          //used when set is full
   public:
+    void printLRU();
     CacheBlock* getAvailableBlock();
     CacheBlock* getBlockWithTag(unsigned int tag);
-    void writeToMemory(CacheResponse *response);
+    void writeToMemory(CacheResponse *response, unsigned int tag);
     void storeBlockFromCPU(CacheResponse *resp, unsigned int tag);
     void loadBlockIntoCPU(CacheResponse *resp, unsigned int tag);
     void loadBlockIntoCache(CacheResponse *resp, unsigned int tag);  //loading block from memory into cache
