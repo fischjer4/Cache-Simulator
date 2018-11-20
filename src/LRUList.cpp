@@ -24,6 +24,10 @@ CacheBlock* LRUList::getEvictedBlock() {
   }
   /*tmp is null. This should never happen */
   if (tmp == NULL) return NULL;
+  /* if after loop tmp and head still point to same Node, then only one
+     Node in list and we MUST set head = NULL since we delete the node */
+  if (tmp == this->head)
+    this->head = NULL;
 
   CacheBlock *result;
   result = tmp->block;
@@ -61,7 +65,7 @@ void LRUList::hookUp(Node *back, Node *ahead) {
 void LRUList::print() {
   Node *t = this->head;
   while (t != NULL) {
-    std::cout << t->block->getTag() << (t->next != NULL ? " - " : "");
+    std::cout << std::dec << t->block->getTag() << (t->next != NULL ? " - " : "");
     t = t->next;
   }
   std::cout << std::endl;
@@ -75,9 +79,10 @@ void LRUList::addInteraction(CacheBlock *block) {
   auto foundBlock = this->map.find(block);
   /* case 1: Head is NULL. First init of list */
   if (this->head == NULL) {
-    this->head = new Node();
-    this->head->block = block;
-    map[block] = this->head;
+    Node *newNode = new Node();
+    newNode->block = block;
+    map[block] = newNode;
+    this->head = newNode;
   }
 
   /* Case 2: Not all blocks in list yet and this block

@@ -131,10 +131,10 @@ void CacheController::runTracefile() {
 	outfile << "Cycles: " << this->globalCycles << endl;
 
 	/* tell cout to output numbers in decimal not hex */
-	cout << std::dec;
-	cout << "Hits: " << this->globalHits << " Misses: " << this->globalMisses
-				  << " Evictions: " << this->globalEvictions << endl;
-	cout << "Cycles: " << this->globalCycles << endl;
+	cout << "Hits: " << std::dec << this->globalHits << 
+	       " Misses: " << std::dec << this->globalMisses <<
+				 " Evictions: " << std::dec << this->globalEvictions << endl;
+	cout << "Cycles: " << std::dec << this->globalCycles << endl;
 
 
 	infile.close();
@@ -160,8 +160,7 @@ CacheController::AddressInfo CacheController::getAddressInfo(unsigned long int a
 void CacheController::cacheAccess(CacheResponse *response, bool isWrite, unsigned long int address) {
 	// determine the index and tag
 	AddressInfo ai = getAddressInfo(address);
-
-	cout << "\tSet index: " << ai.setIndex << ", tag: " << ai.tag << endl;
+	cout << "\tSet index: " << std::dec << ai.setIndex << ", tag: " << std::dec << ai.tag << endl;
 
 	if (isWrite) {
 		/* Store Operation */
@@ -181,7 +180,7 @@ void CacheController::cacheAccess(CacheResponse *response, bool isWrite, unsigne
 
 	/* print the lru for debuggin purposes */
 	if (this->ci.rp == ReplacementPolicy::LRU) {
-		cout << "set " << ai.setIndex << " lru: ";
+		cout << "set " << std::dec << ai.setIndex << " lru: ";
 		this->sets[ai.setIndex]->printLRU();
 	}
 	cout << "-----------------------------------------" << endl;

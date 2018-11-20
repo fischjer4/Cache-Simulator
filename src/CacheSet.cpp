@@ -48,7 +48,7 @@ CacheBlock* CacheSet::getBlockWithTag(unsigned int tag) {
 */
 void CacheSet::writeToMemory(CacheResponse *response, unsigned int tag) {
   std::string typeOfWrite = (response->dirtyEviction ? "dirty block" : "block");
-  std::cout << "Writing " << typeOfWrite << " (" << tag << ") back to memory" << std::endl;
+  std::cout << "Writing " << typeOfWrite << " (" << std::dec << tag << ") back to memory" << std::endl;
 }
 
 /*
@@ -57,7 +57,7 @@ void CacheSet::writeToMemory(CacheResponse *response, unsigned int tag) {
   * If random, then generate random block
 */
 CacheBlock* CacheSet::evictBlock() {
-  if (this->rp == ReplacementPolicy::LRU) {
+  if (this->rp == ReplacementPolicy::LRU && this->lru != NULL) {
     return this->lru->getEvictedBlock();
   } else {
     /* exclusive max, inclusive min */
@@ -152,8 +152,10 @@ void CacheSet::storeBlockFromCPU(CacheResponse *response, unsigned int tag) {
     /* write-back mode, set dirty bit */
     block->setDirty();
   }
-  /* let the lru know we used this block */
-  this->lru->addInteraction(block);
+  /* If ReplacementPolicy is LRU, let the lru know we used this block */
+  if (this->rp == ReplacementPolicy::LRU && this->lru != NULL) {
+    this->lru->addInteraction(block);
+  }
 }
 
 /*
@@ -172,6 +174,8 @@ void CacheSet::loadBlockIntoCPU(CacheResponse *response, unsigned int tag) {
     this->loadBlockIntoCache(response, tag);
     block = getBlockWithTag(tag);
   }
-  /* let the lru know we used this block */
-  this->lru->addInteraction(block);
+  /* If ReplacementPolicy is LRU, let the lru know we used this block */
+  if (this->rp == ReplacementPolicy::LRU && this->lru != NULL) {
+    this->lru->addInteraction(block);
+  }
 }
