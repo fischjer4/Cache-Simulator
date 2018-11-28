@@ -101,3 +101,10 @@ M 047ef249,4 256 hit hit
 Hits:8 Misses:5 Evictions:3
 Cycles: 2239 <-- total sum of simulated cycles (from above)
 ```
+
+### Creating New Tracefile Executables
+1. `valgrind --log-fd=1 --tool=lackey -v --trace-mem=yes ls > lsTracefile`
+  * Here `ls` is the command. Replace it with your new executable
+2. Convert to linux line endings. `tr -d '\15\32' < lsTracefile > lsTracefile-CorrectEndings`
+3. Change multiple spaces to one. `tr -s '[:space:]' < lsTracefile`
+4. Indent by one space at the beginning of each line. `sed 's/^/ /' file`

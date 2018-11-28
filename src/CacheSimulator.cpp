@@ -11,15 +11,31 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <string>
 
 using namespace std;
 
 /*
+	* Get the filename given a path
+*/
+string getFileName(const string& path) {
+	char sep = '/';
+	#ifdef _WIN32
+		sep = '\\';
+	#endif
+
+   size_t i = path.rfind(sep, path.length());
+	 if (i != string::npos) {
+		 return path.substr(i+1, path.length() - i);
+	 }
+	 return "";
+}
+/*
 	This function creates the cache and starts the simulator.
 	Accepts core ID number, configuration info, and the name of the tracefile to read.
 */
-void initializeCache(int id, ConfigInfo config, char * tracefile) {
-	CacheController singlecore = CacheController(config, tracefile);
+void initializeCache(int id, ConfigInfo config, char* tracefile, string filename) {
+	CacheController singlecore = CacheController(config, tracefile, filename);
 	singlecore.runTracefile();
 }
 
@@ -33,7 +49,7 @@ int main(int argc, char* argv[]) {
 		cerr << "You need at least two command line arguments. You should provide a configuration file and at least one trace file." << endl;
 		return 1;
 	}
-	
+
 	// read the configuration file
 	cout << "Reading config file: " << argv[1] << endl;
 	ifstream infile(argv[1]);
@@ -70,8 +86,11 @@ int main(int argc, char* argv[]) {
 	//thread t = thread(initializeCache, 0, config, argv[2]);
 	//t.detach();
 
+	string configname = getFileName( string(argv[1]) );
+	string filename = getFileName( string(argv[2]) );
+	string outputname = configname + "-" + filename;
 	// For singlethreaded operation, you use this:
-	initializeCache(0, config, argv[2]);
+	initializeCache(0, config, argv[2], outputname);
 
 	return 0;
 }

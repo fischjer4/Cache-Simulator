@@ -13,11 +13,11 @@
 
 using namespace std;
 
-CacheController::CacheController(ConfigInfo ci, char* tracefile) {
+CacheController::CacheController(ConfigInfo ci, char* tracefile, string filename) {
 	// store the configuration info
 	this->ci = ci;
 	this->inputFile = string(tracefile);
-	this->outputFile = this->inputFile + ".out";
+	this->outputFile = "./outputs/" + filename + ".out";
 	// compute the other cache parameters
 	this->numByteOffsetBits = log2(ci.blockSize);
 	this->numSetIndexBits = log2(ci.numberSets);
@@ -44,8 +44,8 @@ void CacheController::runTracefile() {
 	// process each input line
 	string line;
 	// define regular expressions that are used to locate commands
-	regex commentPattern("==.*");
-	regex instructionPattern("I .*");
+	regex commentPattern("==.*|.*--.*");
+	regex instructionPattern(" I .*");
 	regex loadPattern(" (L )(.*)(,[[:digit:]]+)$");
 	regex storePattern(" (S )(.*)(,[[:digit:]]+)$");
 	regex modifyPattern(" (M )(.*)(,[[:digit:]]+)$");
@@ -131,7 +131,7 @@ void CacheController::runTracefile() {
 	outfile << "Cycles: " << this->globalCycles << endl;
 
 	/* tell cout to output numbers in decimal not hex */
-	cout << "Hits: " << std::dec << this->globalHits << 
+	cout << "Hits: " << std::dec << this->globalHits <<
 	       " Misses: " << std::dec << this->globalMisses <<
 				 " Evictions: " << std::dec << this->globalEvictions << endl;
 	cout << "Cycles: " << std::dec << this->globalCycles << endl;

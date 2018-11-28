@@ -13,3 +13,6 @@ a.out
 
 # For output
 *.out
+
+# For Writeup
+./Writeup
