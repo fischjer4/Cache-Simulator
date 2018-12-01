@@ -18,7 +18,7 @@ using namespace std;
 /*
 	* Get the filename given a path
 */
-string getFileName(const string& path) {
+string getLastDelim(const string &path) {
 	char sep = '/';
 	#ifdef _WIN32
 		sep = '\\';
@@ -30,12 +30,25 @@ string getFileName(const string& path) {
 	 }
 	 return "";
 }
+
+// vector<string> getSplits(const string &path) {
+// 	string tmpPath = path;
+// 	string delimiter = "/";
+//
+// 	size_t pos = 0;
+// 	vector<string> splits;
+// 	while ((pos = tmpPath.find(delimiter)) != string::npos) {
+// 	    splits.push_back( tmpPath.substr(0, pos) );
+// 	    tmpPath.erase(0, pos + delimiter.length());
+// 	}
+// 	return splits;
+// }
 /*
 	This function creates the cache and starts the simulator.
 	Accepts core ID number, configuration info, and the name of the tracefile to read.
 */
-void initializeCache(int id, ConfigInfo config, char* tracefile, string filename) {
-	CacheController singlecore = CacheController(config, tracefile, filename);
+void initializeCache(int id, ConfigInfo config, string tracefile, string filename, string dir) {
+	CacheController singlecore = CacheController(config, tracefile, filename, dir);
 	singlecore.runTracefile();
 }
 
@@ -80,17 +93,21 @@ int main(int argc, char* argv[]) {
 	else
 		cout << "Using write-back policy" << endl;
 
-	// For multithreaded operation you can do something like the following...
-	// Note that this just shows you how to launch a thread and doesn't address
-	// the cache coherence problem.
-	//thread t = thread(initializeCache, 0, config, argv[2]);
-	//t.detach();
+	/* extract the config name from the config path */
+	string fullConfigPath = string(argv[1]);
+	string configName = getLastDelim(fullConfigPath);
 
-	string configname = getFileName( string(argv[1]) );
-	string filename = getFileName( string(argv[2]) );
-	string outputname = configname + "-" + filename;
-	// For singlethreaded operation, you use this:
-	initializeCache(0, config, argv[2], outputname);
+	/* extract the dir that this output should go.
+		 This is the second to last delimiter */
+	int beginConfig = fullConfigPath.length() - configName.length();
+	string dir = getLastDelim(fullConfigPath.substr(0, beginConfig-1));
+
+	/* create the ouput name by combining the configuration used and the filename */
+	string tracefile = string(argv[2]);
+	string filename = getLastDelim(tracefile);
+	string outputname = configName + "-" + filename;
+
+	initializeCache(0, config, tracefile, outputname, dir);
 
 	return 0;
 }

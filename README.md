@@ -16,9 +16,11 @@ A couple of significant assumptions are used for the sake of simplicity.
 
 ### Cache Simulator Input
 ```
+# [executable] [config file] [tracefile]
 # example invocation of cache simulator
-cache_sim ./cache_config ./tracefile1
-Output file written to ./tracefile1.out
+./bin/cache_sim ./resources/configs/32BlockSize/directWriteThroughRandom32Block ./resources/tracefiles/lsTracefile
+
+This will output the result to ./outputs/32BlockSize/directWriteThroughRandom32Block-lsTracefile
 ```
 ***
 __The first command line argument__ will be the path to the configuration file. This file contains information about the cache design. The file will contain only numeric values, each of which is on a separate line.

@@ -29,7 +29,7 @@ class CacheController {
 		std::vector<CacheSet*> sets;
 
 		ConfigInfo ci;
- 
+
 		// function to allow read or write access to the cache
 		void cacheAccess(CacheResponse*, bool, unsigned long int);
 		// function that can compute the index and tag matching a specific address
@@ -38,7 +38,7 @@ class CacheController {
 		void updateCycles(CacheResponse*, bool);
 
 	public:
-		CacheController(ConfigInfo, char *, std::string);
+		CacheController(ConfigInfo, std::string, std::string, std::string);
 		void runTracefile();
 };
 

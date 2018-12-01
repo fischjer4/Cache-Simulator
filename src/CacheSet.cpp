@@ -90,6 +90,7 @@ void CacheSet::removeBlock(CacheResponse *response) {
   }
   /* invalidate the block */
   evictMe->unsetValid();
+  evictMe->unsetDirty();
 }
 
 /*

@@ -13,11 +13,11 @@
 
 using namespace std;
 
-CacheController::CacheController(ConfigInfo ci, char* tracefile, string filename) {
+CacheController::CacheController(ConfigInfo ci, string tracefile, string filename, string dir) {
 	// store the configuration info
 	this->ci = ci;
-	this->inputFile = string(tracefile);
-	this->outputFile = "./outputs/" + filename + ".out";
+	this->inputFile = tracefile;
+	this->outputFile = "./outputs/" + dir + '/' + filename + ".out";
 	// compute the other cache parameters
 	this->numByteOffsetBits = log2(ci.blockSize);
 	this->numSetIndexBits = log2(ci.numberSets);
@@ -208,7 +208,7 @@ void CacheController::cacheAccess(CacheResponse *response, bool isWrite, unsigne
 		b. Mem access, 1
 		c. If dirty = true, mem access 2
 		d. Write-through, mem acccess 2
-Hit = false
+		e. Hit = false
 */
 void CacheController::updateCycles(CacheResponse *response, bool isWrite) {
 	response->cycles = 0;
@@ -229,7 +229,7 @@ void CacheController::updateCycles(CacheResponse *response, bool isWrite) {
 		/* memory access 1 to go get our block */
 		response->cycles += this->ci.memoryAccessCycles;
 		/* if write-back mode and a dirty eviction took place */
-		if (isWrite && this->ci.wp == WritePolicy::WriteBack && response->dirtyEviction) {
+		if (this->ci.wp == WritePolicy::WriteBack && response->dirtyEviction) {
 			/* memory access 2 to write old block back to memory */
 			response->cycles += this->ci.memoryAccessCycles;
 		} else if (isWrite && this->ci.wp == WritePolicy::WriteThrough) {
