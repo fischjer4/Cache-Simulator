@@ -13,11 +13,11 @@
 
 using namespace std;
 
-CacheController::CacheController(ConfigInfo ci, string tracefile, string filename, string dir) {
+CacheController::CacheController(ConfigInfo ci, string tracefile, string filepath) {
 	// store the configuration info
 	this->ci = ci;
 	this->inputFile = tracefile;
-	this->outputFile = "./outputs/" + dir + '/' + filename + ".out";
+	this->outputFile = filepath;
 	// compute the other cache parameters
 	this->numByteOffsetBits = log2(ci.blockSize);
 	this->numSetIndexBits = log2(ci.numberSets);
@@ -211,9 +211,8 @@ void CacheController::cacheAccess(CacheResponse *response, bool isWrite, unsigne
 		e. Hit = false
 */
 void CacheController::updateCycles(CacheResponse *response, bool isWrite) {
-	response->cycles = 0;
 	/* add cycles to get to cache */
-	response->cycles += this->ci.cacheAccessCycles;
+	response->cycles = this->ci.cacheAccessCycles;
 	/* if it was a hit */
 	if (response->hit) {
 		this->globalHits += 1;
@@ -226,8 +225,9 @@ void CacheController::updateCycles(CacheResponse *response, bool isWrite) {
   /* if it was a miss */
 	else {
 		this->globalMisses += 1;
-		/* memory access 1 to go get our block */
-		response->cycles += this->ci.memoryAccessCycles;
+		/* if it's a load get block, if store then just store in cache (don't need to go to mem) */
+		if (!isWrite)
+			response->cycles += this->ci.memoryAccessCycles;
 		/* if write-back mode and a dirty eviction took place */
 		if (this->ci.wp == WritePolicy::WriteBack && response->dirtyEviction) {
 			/* memory access 2 to write old block back to memory */
@@ -237,8 +237,8 @@ void CacheController::updateCycles(CacheResponse *response, bool isWrite) {
 			response->cycles += this->ci.memoryAccessCycles;
 		}
 	}
+
 	/* add to eviction counter */
-	if (response->eviction || response->dirtyEviction){
+	if (response->eviction || response->dirtyEviction)
 		this->globalEvictions += 1;
-	}
 }

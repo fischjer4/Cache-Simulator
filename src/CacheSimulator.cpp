@@ -13,6 +13,9 @@
 #include <thread>
 #include <string>
 
+#include <sys/types.h>  //used to see if folder exists
+#include <sys/stat.h>
+
 using namespace std;
 
 /*
@@ -31,24 +34,12 @@ string getLastDelim(const string &path) {
 	 return "";
 }
 
-// vector<string> getSplits(const string &path) {
-// 	string tmpPath = path;
-// 	string delimiter = "/";
-//
-// 	size_t pos = 0;
-// 	vector<string> splits;
-// 	while ((pos = tmpPath.find(delimiter)) != string::npos) {
-// 	    splits.push_back( tmpPath.substr(0, pos) );
-// 	    tmpPath.erase(0, pos + delimiter.length());
-// 	}
-// 	return splits;
-// }
 /*
 	This function creates the cache and starts the simulator.
 	Accepts core ID number, configuration info, and the name of the tracefile to read.
 */
-void initializeCache(int id, ConfigInfo config, string tracefile, string filename, string dir) {
-	CacheController singlecore = CacheController(config, tracefile, filename, dir);
+void initializeCache(int id, ConfigInfo config, string tracefile, string filepath) {
+	CacheController singlecore = CacheController(config, tracefile, filepath);
 	singlecore.runTracefile();
 }
 
@@ -100,14 +91,16 @@ int main(int argc, char* argv[]) {
 	/* extract the dir that this output should go.
 		 This is the second to last delimiter */
 	int beginConfig = fullConfigPath.length() - configName.length();
-	string dir = getLastDelim(fullConfigPath.substr(0, beginConfig-1));
+	string dir = "./outputs/" + getLastDelim(fullConfigPath.substr(0, beginConfig-1));
 
 	/* create the ouput name by combining the configuration used and the filename */
 	string tracefile = string(argv[2]);
 	string filename = getLastDelim(tracefile);
 	string outputname = configName + "-" + filename;
+	struct stat info;
+	/* if outputs dir is not present, then put output file where tracefile is at */
+	string filepath = (stat(dir.c_str(), &info ) != 0 ) ? tracefile + ".out" : dir + '/' + outputname + ".out";
 
-	initializeCache(0, config, tracefile, outputname, dir);
-
+	initializeCache(0, config, tracefile, filepath);
 	return 0;
 }

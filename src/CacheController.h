@@ -38,7 +38,7 @@ class CacheController {
 		void updateCycles(CacheResponse*, bool);
 
 	public:
-		CacheController(ConfigInfo, std::string, std::string, std::string);
+		CacheController(ConfigInfo, std::string, std::string);
 		void runTracefile();
 };
 

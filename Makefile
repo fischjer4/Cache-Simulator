@@ -1,8 +1,8 @@
 # Script adapted from https://hiltmon.com/blog/2013/07/03/a-simple-c-plus-plus-project-structure/
 
 # Place the location of your g++ in the line below
-CC := /usr/local/classes/eecs/fall2018/cs472/public/gcc/bin/g++
- # CC  := /usr/local/Cellar/gcc/8.2.0/bin/g++-8
+# CC := /usr/local/classes/eecs/fall2018/cs472/public/gcc/bin/g++
+ CC  := /usr/local/Cellar/gcc/8.2.0/bin/g++-8
 SRCDIR := src
 BUILDDIR := build
 TARGET := bin/cache_sim
